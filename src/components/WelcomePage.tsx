@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { motion, useAnimation, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Bar {
@@ -48,12 +48,11 @@ function useHeroSort() {
     new Promise<void>((res) => setTimeout(res, ms));
 
   const randomArray = (n = 18) =>
-    Array.from({ length: n }, (_, i) => ({
+    Array.from({ length: n }, () => ({
       value: Math.floor(20 + Math.random() * 78),
       state: "default" as Bar["state"],
     }));
 
-  // Bubble sort generator with state updates
   async function bubbleSort(arr: Bar[]) {
     const a = arr.map((b) => ({ ...b }));
     const n = a.length;
@@ -88,7 +87,6 @@ function useHeroSort() {
         if (!mounted) break;
         await bubbleSort(arr);
         if (!mounted) break;
-        // Reset all to default briefly
         setBars(arr.map((b) => ({ ...b, state: "default" })));
         await sleep(500);
       }
@@ -109,10 +107,11 @@ function useHeroSort() {
 function HeroBars({ bars }: { bars: Bar[] }) {
   const maxVal = Math.max(...bars.map((b) => b.value), 1);
 
+  // White theme bar colors — no neon, just calm indigo + slate
   const barColor = (state: Bar["state"]) => {
-    if (state === "comparing") return "bg-cyan-400 shadow-[0_0_12px_#00d4ff]";
-    if (state === "sorted") return "bg-indigo-400 shadow-[0_0_10px_#818cf8]";
-    return "bg-indigo-700/70";
+    if (state === "comparing") return "bg-indigo-500";
+    if (state === "sorted")    return "bg-slate-500";
+    return "bg-slate-200";
   };
 
   return (
@@ -135,7 +134,8 @@ function AlgoChip({ label, delay }: { label: string; delay: number }) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.4 }}
-      className="px-3 py-1 rounded-full text-xs font-medium border border-indigo-500/40 bg-indigo-500/10 text-indigo-300 whitespace-nowrap"
+      // Subtle bordered pill, no color fill
+      className="px-3 py-1 rounded-full text-xs font-medium border border-slate-200 bg-white text-slate-600 whitespace-nowrap shadow-sm"
     >
       {label}
     </motion.span>
@@ -159,14 +159,12 @@ function FeatureCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5, delay }}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      className="relative group rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 backdrop-blur-sm hover:border-indigo-500/40 hover:bg-indigo-500/5 transition-colors duration-300"
+      // White card with a clean border and a gentle shadow — no glow
+      className="relative rounded-2xl border border-slate-100 bg-white p-6 shadow-sm hover:shadow-md hover:border-slate-200 transition-shadow duration-300"
     >
       <div className="text-3xl mb-4">{icon}</div>
-      <h3 className="text-white font-semibold text-base mb-2">{title}</h3>
-      <p className="text-slate-400 text-sm leading-relaxed">{desc}</p>
-      {/* subtle glow on hover */}
-      <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-indigo-500/5 to-transparent" />
+      <h3 className="text-slate-900 font-semibold text-base mb-2">{title}</h3>
+      <p className="text-slate-500 text-sm leading-relaxed">{desc}</p>
     </motion.div>
   );
 }
@@ -176,7 +174,6 @@ export default function WelcomePage() {
   const bars = useHeroSort();
   const [algoIdx, setAlgoIdx] = useState(0);
 
-  // Cycle algo label
   useEffect(() => {
     const id = setInterval(
       () => setAlgoIdx((i) => (i + 1) % ALGO_LABELS.length),
@@ -186,86 +183,76 @@ export default function WelcomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#080C18] text-white font-sans selection:bg-indigo-500/40 overflow-x-hidden">
-      {/* ── Background grid + glow ── */}
-      <div
-        className="fixed inset-0 pointer-events-none"
-        style={{
-          backgroundImage: `
-            linear-gradient(rgba(99,102,241,0.04) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(99,102,241,0.04) 1px, transparent 1px)
-          `,
-          backgroundSize: "48px 48px",
-        }}
-      />
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none" />
-      <div className="fixed bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-cyan-500/5 blur-[100px] pointer-events-none" />
+    // Pure white background, dark text
+    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-indigo-100 overflow-x-hidden">
 
       {/* ── Nav ── */}
       <motion.nav
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="relative z-10 flex items-center justify-between px-6 md:px-12 py-5 border-b border-white/[0.06]"
+        // Clean white nav with a light bottom border — no blur, no dark bg
+        className="relative z-10 flex items-center justify-between px-6 md:px-12 py-5 border-b border-slate-100 bg-white"
       >
         <div className="flex items-center gap-2">
-          {/* Logo mark */}
+          {/* Logo mark — indigo bars on white */}
           <div className="flex items-end gap-[2px] h-5">
             {[3, 5, 4, 7, 6, 4].map((h, i) => (
               <div
                 key={i}
-                className="w-[3px] rounded-t-[1px] bg-indigo-400"
+                className="w-[3px] rounded-t-[1px] bg-indigo-500"
                 style={{ height: `${h * 3}px` }}
               />
             ))}
           </div>
-          <span className="font-bold text-lg tracking-tight text-white">
-            Algo<span className="text-indigo-400">Sort</span>
+          <span className="font-bold text-lg tracking-tight text-slate-900">
+            Algo<span className="text-indigo-500">Sort</span>
           </span>
         </div>
 
-        <div className="hidden md:flex items-center gap-8 text-sm text-slate-400">
-          <a href="#" className="hover:text-white transition-colors">Algorithms</a>
-          <a href="#" className="hover:text-white transition-colors">Docs</a>
-          <a href="#" className="hover:text-white transition-colors">About</a>
+        <div className="hidden md:flex items-center gap-8 text-sm text-slate-500">
+          <a href="#" className="hover:text-slate-900 transition-colors">Algorithms</a>
+          {/* <a href="#" className="hover:text-slate-900 transition-colors">Docs</a> */}
+          <a href="#" className="hover:text-slate-900 transition-colors">About</a>
         </div>
 
+        {/* Solid indigo button — calm, no gradient */}
         <motion.button
           whileHover={{ scale: 1.04 }}
           whileTap={{ scale: 0.97 }}
-          className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium text-white transition-colors"
+          className="px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-sm font-medium text-white transition-colors"
         >
-          Launch App →
+          Start
         </motion.button>
       </motion.nav>
 
       {/* ── Hero ── */}
       <section className="relative z-10 max-w-5xl mx-auto px-6 md:px-12 pt-20 pb-16 text-center">
-        {/* Badge */}
+
+        {/* Badge — light indigo tint, no border glow */}
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4 }}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-medium mb-8"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-100 bg-indigo-50 text-indigo-600 text-xs font-medium mb-8"
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
           Interactive Algorithm Visualizer
         </motion.div>
 
-        {/* Headline */}
+        {/* Headline — dark on white, no gradient text */}
         <motion.h1
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-5xl md:text-7xl font-extrabold tracking-tight leading-[1.05] mb-6"
+          className="text-5xl md:text-7xl font-extrabold tracking-tight leading-[1.05] mb-6 text-slate-900"
         >
           See Sorting{" "}
-          <span className="relative inline-block">
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-violet-400 to-cyan-400">
-              Come Alive
-            </span>
+          <span className="relative inline-block text-indigo-500">
+            Come Alive
+            {/* Underline accent — single calm indigo line */}
             <motion.span
-              className="absolute -bottom-1 left-0 h-[3px] w-full rounded-full bg-gradient-to-r from-indigo-400 to-cyan-400"
+              className="absolute -bottom-1 left-0 h-[3px] w-full rounded-full bg-indigo-400"
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
               transition={{ duration: 0.6, delay: 0.7 }}
@@ -274,12 +261,12 @@ export default function WelcomePage() {
           </span>
         </motion.h1>
 
-        {/* Sub */}
+        {/* Subheading */}
         <motion.p
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.25 }}
-          className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed"
+          className="text-slate-500 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed"
         >
           Stop memorizing. Start understanding. AlgoSort turns abstract sorting
           algorithms into living, breathing animations you can pause, rewind, and
@@ -293,17 +280,21 @@ export default function WelcomePage() {
           transition={{ duration: 0.5, delay: 0.35 }}
           className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-14"
         >
+          {/* Primary — solid indigo, no gradient */}
           <motion.button
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
-            className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold text-base shadow-lg shadow-indigo-500/25 transition-all"
+            onClick={() => (window.location.href = "/visualizer")}
+            className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white font-semibold text-base shadow-md shadow-indigo-100 transition-all"
           >
-            Start Visualizing →
+            Start Visualizing
           </motion.button>
+
+          {/* Secondary — bordered, white bg */}
           <motion.button
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
-            className="w-full sm:w-auto px-7 py-3.5 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-white font-semibold text-base backdrop-blur-sm transition-all"
+            className="w-full sm:w-auto px-7 py-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-base transition-all"
           >
             View on GitHub
           </motion.button>
@@ -314,15 +305,16 @@ export default function WelcomePage() {
           initial={{ opacity: 0, y: 32 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.45 }}
-          className="relative rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-sm p-6 md:p-8 shadow-2xl shadow-black/40 mb-8"
+          // White card with a border and a soft shadow — no dark glass
+          className="relative rounded-2xl border border-slate-100 bg-white shadow-lg p-6 md:p-8 mb-8"
         >
           {/* Window dots */}
           <div className="flex items-center gap-2 mb-6">
-            <span className="w-3 h-3 rounded-full bg-red-500/60" />
-            <span className="w-3 h-3 rounded-full bg-yellow-500/60" />
-            <span className="w-3 h-3 rounded-full bg-green-500/60" />
+            <span className="w-3 h-3 rounded-full bg-red-400/70" />
+            <span className="w-3 h-3 rounded-full bg-yellow-400/70" />
+            <span className="w-3 h-3 rounded-full bg-green-400/70" />
             <div className="ml-4 flex items-center gap-2">
-              <span className="text-xs text-slate-500">Running:</span>
+              <span className="text-xs text-slate-400">Running:</span>
               <AnimatePresence mode="wait">
                 <motion.span
                   key={algoIdx}
@@ -330,7 +322,8 @@ export default function WelcomePage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 8 }}
                   transition={{ duration: 0.3 }}
-                  className="text-xs font-mono text-cyan-400"
+                  // Indigo label, no neon cyan
+                  className="text-xs font-mono text-indigo-500"
                 >
                   {ALGO_LABELS[algoIdx]}
                 </motion.span>
@@ -342,15 +335,15 @@ export default function WelcomePage() {
           <HeroBars bars={bars} />
 
           {/* Legend */}
-          <div className="flex items-center justify-center gap-6 mt-5 text-xs text-slate-500">
+          <div className="flex items-center justify-center gap-6 mt-5 text-xs text-slate-400">
             <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-sm bg-cyan-400" /> Comparing
+              <span className="w-2.5 h-2.5 rounded-sm bg-indigo-500" /> Comparing
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-sm bg-indigo-400" /> Sorted
+              <span className="w-2.5 h-2.5 rounded-sm bg-slate-500" /> Sorted
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-sm bg-indigo-700" /> Unsorted
+              <span className="w-2.5 h-2.5 rounded-sm bg-slate-200" /> Unsorted
             </span>
           </div>
         </motion.div>
@@ -365,20 +358,18 @@ export default function WelcomePage() {
       </section>
 
       {/* ── Stats ── */}
-      <section className="relative z-10 max-w-2xl mx-auto px-6 py-10">
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="grid grid-cols-3 divide-x divide-white/[0.08] border border-white/[0.08] rounded-2xl bg-white/[0.02] backdrop-blur-sm overflow-hidden"
-        >
-          {STATS.map(({ value, label }, i) => (
-            <div key={i} className="flex flex-col items-center py-7 px-4">
-              <span className="text-3xl font-bold text-white mb-1">{value}</span>
-              <span className="text-xs text-slate-500 uppercase tracking-widest">{label}</span>
-            </div>
-          ))}
-        </motion.div>
+      {/* Light grey strip to break up the white — subtle section separator */}
+      <section className="relative z-10 bg-slate-50 border-y border-slate-100 py-2">
+        <div className="max-w-2xl mx-auto px-6">
+          <div className="grid grid-cols-3 divide-x divide-slate-100">
+            {STATS.map(({ value, label }, i) => (
+              <div key={i} className="flex flex-col items-center py-7 px-4">
+                <span className="text-3xl font-bold text-slate-900 mb-1">{value}</span>
+                <span className="text-xs text-slate-400 tracking-widest uppercase">{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* ── Features ── */}
@@ -389,14 +380,10 @@ export default function WelcomePage() {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
-          <p className="text-xs uppercase tracking-[0.2em] text-indigo-400 mb-3 font-medium">
-            Why AlgoSort
-          </p>
-          <h2 className="text-3xl md:text-4xl font-bold text-white">
-            Built for learners who want to{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">
-              actually get it
-            </span>
+          {/* Eyebrow — plain text, no ALL CAPS tracking decoration */}
+          <p className="text-indigo-500 text-sm font-medium mb-3">Why AlgoSort</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-slate-900">
+            Built for learners who want to actually get it
           </h2>
         </motion.div>
 
@@ -413,48 +400,44 @@ export default function WelcomePage() {
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="relative rounded-3xl overflow-hidden border border-indigo-500/20 bg-gradient-to-br from-indigo-600/15 via-violet-600/10 to-transparent p-10 md:p-14 text-center"
+          // Indigo-tinted section — light, not dark
+          className="rounded-3xl border border-indigo-100 bg-indigo-50 p-10 md:p-14 text-center"
         >
-          {/* Glow orbs */}
-          <div className="absolute -top-16 -left-16 w-48 h-48 rounded-full bg-indigo-500/15 blur-[60px] pointer-events-none" />
-          <div className="absolute -bottom-16 -right-16 w-48 h-48 rounded-full bg-cyan-500/10 blur-[60px] pointer-events-none" />
-
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
             Ready to master sorting?
           </h2>
-          <p className="text-slate-400 mb-8 max-w-xl mx-auto">
-            No setup. No install. Open your browser and start learning in
-            seconds.
+          <p className="text-slate-500 mb-8 max-w-xl mx-auto">
+            No setup. No install. Open your browser and start learning in seconds.
           </p>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.96 }}
-            className="px-8 py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-base shadow-lg shadow-indigo-500/30 transition-all"
+            className="px-8 py-4 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white font-bold text-base shadow-md shadow-indigo-200 transition-all"
           >
-            Start Visualizing — It's Free →
+            Start Visualizing — It's Free
           </motion.button>
         </motion.div>
       </section>
 
       {/* ── Footer ── */}
-      <footer className="relative z-10 border-t border-white/[0.06] px-6 md:px-12 py-8">
+      <footer className="relative z-10 border-t border-slate-100 bg-white px-6 md:px-12 py-8">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="flex items-end gap-[2px] h-4">
               {[3, 5, 4, 7, 6, 4].map((h, i) => (
-                <div key={i} className="w-[2px] rounded-t-[1px] bg-indigo-400/60" style={{ height: `${h * 2.5}px` }} />
+                <div key={i} className="w-[2px] rounded-t-[1px] bg-indigo-400" style={{ height: `${h * 2.5}px` }} />
               ))}
             </div>
-            <span className="text-sm font-semibold text-white/70">
-              Algo<span className="text-indigo-400">Sort</span>
+            <span className="text-sm font-semibold text-slate-700">
+              Algo<span className="text-indigo-500">Sort</span>
             </span>
           </div>
-          <p className="text-xs text-slate-600">
-            Built with ❤️ for CS students everywhere
+          <p className="text-xs text-slate-400">
+            @aryan.0529
           </p>
-          <div className="flex gap-6 text-xs text-slate-500">
-            <a href="#" className="hover:text-white transition-colors">Privacy</a>
-            <a href="#" className="hover:text-white transition-colors">GitHub</a>
+          <div className="flex gap-6 text-xs text-slate-400">
+            <a href="#" className="hover:text-slate-700 transition-colors">Privacy</a>
+            <a href="#" className="hover:text-slate-700 transition-colors">GitHub</a>
           </div>
         </div>
       </footer>
