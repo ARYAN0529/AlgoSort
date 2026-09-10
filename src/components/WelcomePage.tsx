@@ -1,55 +1,100 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Fonts ────────────────────────────────────────────────────────────────────
+// Add BOTH to index.html <head>:
+//
+// Inter (body + UI):
+// <link rel="preconnect" href="https://fonts.googleapis.com" />
+// <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+// <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+//
+// Dancing Script (cycling headline word only):
+// <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&display=swap" rel="stylesheet" />
+//
+// tailwind.config.js:
+// fontFamily: { sans: ['Inter', 'sans-serif'], script: ['Dancing Script', 'cursive'] }
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface Bar {
   value: number;
   state: "default" | "comparing" | "sorted" | "pivot";
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const ALGO_LABELS = ["Bubble Sort", "Quick Sort", "Merge Sort", "Heap Sort", "Insertion Sort"];
-
-const FEATURES = [
-  {
-    icon: "⚡",
-    title: "Real-time Visualization",
-    desc: "Watch every comparison and swap happen frame-by-frame with precise timing control.",
-  },
-  {
-    icon: "🧠",
-    title: "10+ Algorithms",
-    desc: "From classic Bubble Sort to advanced Radix Sort — all beautifully animated.",
-  },
-  {
-    icon: "📊",
-    title: "Live Complexity",
-    desc: "Time & space complexity updates live as the algorithm runs. Learn by seeing.",
-  },
-  {
-    icon: "🎛️",
-    title: "Full Control",
-    desc: "Pause, step forward, rewind, adjust speed — you're in the director's chair.",
-  },
+const HEADLINE_WORDS = [
+  "Bubble Sort",
+  "Quick Sort",
+  "Merge Sort",
+  "Heap Sort",
+  "Insertion Sort",
 ];
 
 const STATS = [
-  { value: "10+", label: "Algorithms" },
+  { value: "5", label: "Algorithms" },
   { value: "60fps", label: "Animations" },
   { value: "∞", label: "Array Sizes" },
 ];
 
-// ─── Sorting animation hook ───────────────────────────────────────────────────
+const BG = "#F7F7F5"; // Notion's warm off-white — single source of truth for page bg
+const ACCENT = "#0F6E5C"; // deep teal — used sparingly for the one animated headline word
+
+// ─── CyclingWord ──────────────────────────────────────────────────────────────
+// Fixed-width, center-locked word cycler: the box width is pinned to the
+// longest word in the list, so the animation always slides through dead
+// center regardless of how long or short the current word is.
+const CyclingWord = memo(function CyclingWord({
+  words,
+  intervalMs = 2000,
+}: {
+  words: string[];
+  intervalMs?: number;
+}) {
+  const [idx, setIdx] = useState(0);
+  const maxChars = useRef(Math.max(...words.map((w) => w.length))).current;
+
+  useEffect(() => {
+    const id = setInterval(() => setIdx((i) => (i + 1) % words.length), intervalMs);
+    return () => clearInterval(id);
+  }, [words, intervalMs]);
+
+  return (
+    <span
+      className="relative inline-flex justify-center items-center overflow-hidden align-bottom"
+      style={{ height: "1.15em", width: `${maxChars + 1}ch` }}
+    >
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={idx}
+          initial={{ y: "110%", opacity: 0 }}
+          animate={{ y: "0%", opacity: 1 }}
+          exit={{ y: "-110%", opacity: 0 }}
+          transition={{ duration: 0.42, ease: [0.32, 0.72, 0, 1] }}
+          className="font-normal"
+          style={{
+            fontFamily: "'Dancing Script', cursive",
+            display: "inline-block",
+            whiteSpace: "nowrap",
+            textAlign: "center",
+            color: ACCENT,
+          }}
+        >
+          {words[idx]}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+});
+
+// ─── useHeroSort ──────────────────────────────────────────────────────────────
 function useHeroSort() {
   const [bars, setBars] = useState<Bar[]>([]);
   const running = useRef(true);
+  const sleep = (ms: number) => new Promise<void>((res) => setTimeout(res, ms));
 
-  const sleep = (ms: number) =>
-    new Promise<void>((res) => setTimeout(res, ms));
-
-  const randomArray = (n = 18) =>
+  const randomArray = (n = 20) =>
     Array.from({ length: n }, () => ({
-      value: Math.floor(20 + Math.random() * 78),
+      value: Math.floor(15 + Math.random() * 82),
       state: "default" as Bar["state"],
     }));
 
@@ -61,10 +106,8 @@ function useHeroSort() {
         a[j].state = "comparing";
         a[j + 1].state = "comparing";
         setBars([...a]);
-        await sleep(80);
-        if (a[j].value > a[j + 1].value) {
-          [a[j], a[j + 1]] = [a[j + 1], a[j]];
-        }
+        await sleep(70);
+        if (a[j].value > a[j + 1].value) [a[j], a[j + 1]] = [a[j + 1], a[j]];
         a[j].state = "default";
         a[j + 1].state = "default";
       }
@@ -72,26 +115,24 @@ function useHeroSort() {
     }
     a[0].state = "sorted";
     setBars([...a]);
-    await sleep(900);
+    await sleep(1000);
   }
 
   useEffect(() => {
     running.current = true;
     let mounted = true;
-
     async function loop() {
       while (mounted) {
-        const arr = randomArray(18);
+        const arr = randomArray(20);
         setBars(arr);
-        await sleep(600);
+        await sleep(500);
         if (!mounted) break;
         await bubbleSort(arr);
         if (!mounted) break;
         setBars(arr.map((b) => ({ ...b, state: "default" })));
-        await sleep(500);
+        await sleep(600);
       }
     }
-
     loop();
     return () => {
       mounted = false;
@@ -102,342 +143,265 @@ function useHeroSort() {
   return bars;
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── HeroBars ─────────────────────────────────────────────────────────────────
+const barStateStyle: Record<Bar["state"], { backgroundColor: string }> = {
+  comparing: { backgroundColor: "#111111" },
+  sorted: { backgroundColor: "#737373" },
+  pivot: { backgroundColor: "#111111" },
+  default: { backgroundColor: "#C8C8C8" },
+};
 
-function HeroBars({ bars }: { bars: Bar[] }) {
+const HeroBars = memo(function HeroBars({ bars }: { bars: Bar[] }) {
   const maxVal = Math.max(...bars.map((b) => b.value), 1);
-
-  // White theme bar colors — no neon, just calm indigo + slate
-  const barColor = (state: Bar["state"]) => {
-    if (state === "comparing") return "bg-indigo-500";
-    if (state === "sorted")    return "bg-slate-500";
-    return "bg-slate-200";
-  };
-
   return (
-    <div className="flex items-end justify-center gap-[3px] h-48 w-full">
+    <div className="flex items-end justify-center gap-[3px] h-52 w-full">
       {bars.map((bar, i) => (
         <motion.div
           key={i}
-          className={`rounded-t-sm flex-1 max-w-[28px] transition-colors duration-150 ${barColor(bar.state)}`}
+          className="rounded-t-[2px] flex-1 max-w-[26px]"
+          style={barStateStyle[bar.state]}
           animate={{ height: `${(bar.value / maxVal) * 100}%` }}
-          transition={{ type: "spring", stiffness: 300, damping: 28 }}
+          transition={{ type: "spring", stiffness: 280, damping: 26 }}
         />
       ))}
     </div>
   );
-}
-
-function AlgoChip({ label, delay }: { label: string; delay: number }) {
-  return (
-    <motion.span
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.4 }}
-      // Subtle bordered pill, no color fill
-      className="px-3 py-1 rounded-full text-xs font-medium border border-slate-200 bg-white text-slate-600 whitespace-nowrap shadow-sm"
-    >
-      {label}
-    </motion.span>
-  );
-}
-
-function FeatureCard({
-  icon,
-  title,
-  desc,
-  delay,
-}: {
-  icon: string;
-  title: string;
-  desc: string;
-  delay: number;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5, delay }}
-      // White card with a clean border and a gentle shadow — no glow
-      className="relative rounded-2xl border border-slate-100 bg-white p-6 shadow-sm hover:shadow-md hover:border-slate-200 transition-shadow duration-300"
-    >
-      <div className="text-3xl mb-4">{icon}</div>
-      <h3 className="text-slate-900 font-semibold text-base mb-2">{title}</h3>
-      <p className="text-slate-500 text-sm leading-relaxed">{desc}</p>
-    </motion.div>
-  );
-}
+});
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function WelcomePage() {
   const bars = useHeroSort();
   const [algoIdx, setAlgoIdx] = useState(0);
 
+  // drives the "running:" label inside the visualizer card — same 2s cadence
   useEffect(() => {
-    const id = setInterval(
-      () => setAlgoIdx((i) => (i + 1) % ALGO_LABELS.length),
-      2200
-    );
+    const id = setInterval(() => setAlgoIdx((i) => (i + 1) % HEADLINE_WORDS.length), 2000);
     return () => clearInterval(id);
   }, []);
 
   return (
-    // Pure white background, dark text
-    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-indigo-100 overflow-x-hidden">
-
-      {/* ── Nav ── */}
+    // ── full-viewport wrapper, bg = Notion warm off-white everywhere ──
+    <div
+      className="min-h-screen flex flex-col text-neutral-900 font-sans overflow-x-hidden"
+      style={{ backgroundColor: BG }}
+    >
+      {/* ═══════════════════════════════════════════════════════════════════════
+          NAV — same bg, no border, no white box
+      ════════════════════════════════════════════════════════════════════════ */}
       <motion.nav
-        initial={{ opacity: 0, y: -16 }}
+        initial={{ opacity: 0, y: -14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        // Clean white nav with a light bottom border — no blur, no dark bg
-        className="relative z-10 flex items-center justify-between px-6 md:px-12 py-5 border-b border-slate-100 bg-white"
+        transition={{ duration: 0.4 }}
+        className="sticky top-0 z-50 flex items-center justify-between px-8 md:px-16 py-5"
+        style={{ backgroundColor: BG }}
       >
-        <div className="flex items-center gap-2">
-          {/* Logo mark — indigo bars on white */}
-          <div className="flex items-end gap-[2px] h-5">
+        {/* Logo */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-end gap-[3px] h-6">
             {[3, 5, 4, 7, 6, 4].map((h, i) => (
               <div
                 key={i}
-                className="w-[3px] rounded-t-[1px] bg-indigo-500"
-                style={{ height: `${h * 3}px` }}
+                className="w-[3.5px] rounded-t-[1px] bg-neutral-900"
+                style={{ height: `${h * 3.4}px` }}
               />
             ))}
           </div>
-          <span className="font-bold text-lg tracking-tight text-slate-900">
-            Algo<span className="text-indigo-500">Sort</span>
+          <span className="font-bold text-xl tracking-tight text-neutral-900">
+            Algo<span className="text-neutral-400">Sort</span>
           </span>
         </div>
 
-        <div className="hidden md:flex items-center gap-8 text-sm text-slate-500">
-          <a href="#" className="hover:text-slate-900 transition-colors">Algorithms</a>
-          {/* <a href="#" className="hover:text-slate-900 transition-colors">Docs</a> */}
-          <a href="#" className="hover:text-slate-900 transition-colors">About</a>
+        {/* Nav links */}
+        <div className="hidden md:flex items-center gap-10 text-[15px] font-medium text-neutral-500">
+          <a href="/visualizer" className="hover:text-neutral-900 transition-colors duration-150">
+            Visualizer
+          </a>
+          <a href="#features" className="hover:text-neutral-900 transition-colors duration-150">
+            Features
+          </a>
+          <a href="#about" className="hover:text-neutral-900 transition-colors duration-150">
+            About
+          </a>
         </div>
 
-        {/* Solid indigo button — calm, no gradient */}
-        <motion.button
-          whileHover={{ scale: 1.04 }}
+        {/* CTA button */}
+        <motion.a
+          href="/visualizer"
+          whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.97 }}
-          className="px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-sm font-medium text-white transition-colors"
+          className="px-5 py-2.5 rounded-lg bg-neutral-900 hover:bg-neutral-700 text-[14px] font-semibold text-white transition-colors"
         >
-          Start
-        </motion.button>
+          Start Visualizing
+        </motion.a>
       </motion.nav>
 
-      {/* ── Hero ── */}
-      <section className="relative z-10 max-w-5xl mx-auto px-6 md:px-12 pt-20 pb-16 text-center">
-
-        {/* Badge — light indigo tint, no border glow */}
+      {/* ═══════════════════════════════════════════════════════════════════════
+          HERO
+      ════════════════════════════════════════════════════════════════════════ */}
+      <section className="flex-1 flex flex-col items-center justify-center text-center px-6 md:px-12 pt-10 pb-16">
+        {/* Badge */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4 }}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-100 bg-indigo-50 text-indigo-600 text-xs font-medium mb-8"
+          transition={{ duration: 0.35 }}
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-neutral-300 bg-white/80 text-xs font-medium mb-10"
+          style={{ color: ACCENT }}
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: ACCENT }} />
           Interactive Algorithm Visualizer
         </motion.div>
 
-        {/* Headline — dark on white, no gradient text */}
+        {/* ── Headline ──
+            Line 1: "See Sorting" — Inter, semibold (not extrabold)
+            Line 2: CyclingWord   — Dancing Script, normal weight, accent color */}
         <motion.h1
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-5xl md:text-7xl font-extrabold tracking-tight leading-[1.05] mb-6 text-slate-900"
+          transition={{ duration: 0.55, delay: 0.08 }}
+          className="text-5xl md:text-[76px] font-semibold tracking-[-0.03em] leading-[1.12] mb-6 text-neutral-900"
         >
-          See Sorting{" "}
-          <span className="relative inline-block text-indigo-500">
-            Come Alive
-            {/* Underline accent — single calm indigo line */}
-            <motion.span
-              className="absolute -bottom-1 left-0 h-[3px] w-full rounded-full bg-indigo-400"
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration: 0.6, delay: 0.7 }}
-              style={{ originX: 0 }}
-            />
-          </span>
+          See Sorting
+          <br />
+          <CyclingWord words={HEADLINE_WORDS} intervalMs={2000} />
         </motion.h1>
 
         {/* Subheading */}
         <motion.p
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.25 }}
-          className="text-slate-500 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed"
+          transition={{ duration: 0.45, delay: 0.2 }}
+          className="text-neutral-500 text-lg max-w-lg mx-auto mb-10 leading-relaxed"
         >
           Stop memorizing. Start understanding. AlgoSort turns abstract sorting
-          algorithms into living, breathing animations you can pause, rewind, and
-          explore at your own pace.
+          algorithms into animations you can pause, rewind, and explore at your own pace.
         </motion.p>
 
         {/* CTAs */}
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.35 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
           className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-14"
         >
-          {/* Primary — solid indigo, no gradient */}
-          <motion.button
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.96 }}
-            onClick={() => (window.location.href = "/visualizer")}
-            className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white font-semibold text-base shadow-md shadow-indigo-100 transition-all"
+          <motion.a
+            href="/visualizer"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-neutral-900 hover:bg-neutral-700 text-white font-semibold text-sm transition-colors"
           >
             Start Visualizing
-          </motion.button>
+          </motion.a>
 
-          {/* Secondary — bordered, white bg */}
-          <motion.button
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.96 }}
-            className="w-full sm:w-auto px-7 py-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-base transition-all"
+          <motion.a
+            href="https://github.com/ARYAN0529"
+            target="_blank"
+            rel="noopener noreferrer"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            className="w-full sm:w-auto px-8 py-3.5 rounded-xl border border-neutral-300 bg-white hover:border-neutral-500 text-neutral-600 font-semibold text-sm transition-colors"
           >
             View on GitHub
-          </motion.button>
+          </motion.a>
         </motion.div>
 
         {/* ── Live Visualizer Card ── */}
         <motion.div
-          initial={{ opacity: 0, y: 32 }}
+          initial={{ opacity: 0, y: 28 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.45 }}
-          // White card with a border and a soft shadow — no dark glass
-          className="relative rounded-2xl border border-slate-100 bg-white shadow-lg p-6 md:p-8 mb-8"
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="w-full max-w-3xl rounded-2xl border border-neutral-200 bg-white shadow-[0_4px_40px_rgba(0,0,0,0.08)] p-6 md:p-8"
         >
-          {/* Window dots */}
-          <div className="flex items-center gap-2 mb-6">
-            <span className="w-3 h-3 rounded-full bg-red-400/70" />
-            <span className="w-3 h-3 rounded-full bg-yellow-400/70" />
-            <span className="w-3 h-3 rounded-full bg-green-400/70" />
-            <div className="ml-4 flex items-center gap-2">
-              <span className="text-xs text-slate-400">Running:</span>
+          {/* Window chrome */}
+          <div className="flex items-center gap-[6px] mb-6">
+            <span className="w-2.5 h-2.5 rounded-full bg-neutral-200" />
+            <span className="w-2.5 h-2.5 rounded-full bg-neutral-200" />
+            <span className="w-2.5 h-2.5 rounded-full bg-neutral-200" />
+            <div className="ml-3 flex items-center gap-1.5">
+              <span className="text-[11px] text-neutral-400 font-mono">running</span>
               <AnimatePresence mode="wait">
                 <motion.span
                   key={algoIdx}
-                  initial={{ opacity: 0, y: -8 }}
+                  initial={{ opacity: 0, y: -5 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 8 }}
-                  transition={{ duration: 0.3 }}
-                  // Indigo label, no neon cyan
-                  className="text-xs font-mono text-indigo-500"
+                  exit={{ opacity: 0, y: 5 }}
+                  transition={{ duration: 0.22 }}
+                  className="text-[11px] font-mono font-medium"
+                  style={{ color: ACCENT }}
                 >
-                  {ALGO_LABELS[algoIdx]}
+                  {HEADLINE_WORDS[algoIdx]}
                 </motion.span>
               </AnimatePresence>
             </div>
           </div>
 
-          {/* Bars */}
           <HeroBars bars={bars} />
 
           {/* Legend */}
-          <div className="flex items-center justify-center gap-6 mt-5 text-xs text-slate-400">
+          <div className="flex items-center justify-center gap-6 mt-5 text-[11px] text-neutral-400 font-mono">
             <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-sm bg-indigo-500" /> Comparing
+              <span className="w-2 h-2 rounded-[2px] bg-neutral-900 inline-block" /> comparing
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-sm bg-slate-500" /> Sorted
+              <span className="w-2 h-2 rounded-[2px] bg-neutral-500 inline-block" /> sorted
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-sm bg-slate-200" /> Unsorted
+              <span className="w-2 h-2 rounded-[2px] bg-neutral-300 inline-block" /> unsorted
             </span>
           </div>
         </motion.div>
-
-        {/* Algo chips */}
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          {ALGO_LABELS.map((label, i) => (
-            <AlgoChip key={label} label={label} delay={0.6 + i * 0.08} />
-          ))}
-          <AlgoChip label="+ 5 more" delay={1.05} />
-        </div>
       </section>
 
-      {/* ── Stats ── */}
-      {/* Light grey strip to break up the white — subtle section separator */}
-      <section className="relative z-10 bg-slate-50 border-y border-slate-100 py-2">
-        <div className="max-w-2xl mx-auto px-6">
-          <div className="grid grid-cols-3 divide-x divide-slate-100">
+      {/* ═══════════════════════════════════════════════════════════════════════
+          STATS — white band
+      ════════════════════════════════════════════════════════════════════════ */}
+      <section className="border-y border-neutral-200 bg-white">
+        <div className="max-w-xl mx-auto px-6">
+          <div className="grid grid-cols-3 divide-x divide-neutral-100">
             {STATS.map(({ value, label }, i) => (
-              <div key={i} className="flex flex-col items-center py-7 px-4">
-                <span className="text-3xl font-bold text-slate-900 mb-1">{value}</span>
-                <span className="text-xs text-slate-400 tracking-widest uppercase">{label}</span>
+              <div key={i} className="flex flex-col items-center py-10 px-4">
+                <span className="text-3xl font-bold text-neutral-900 mb-1 tracking-tight">{value}</span>
+                <span className="text-[11px] text-neutral-400 tracking-widest uppercase font-mono">{label}</span>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Features ── */}
-      <section className="relative z-10 max-w-5xl mx-auto px-6 md:px-12 py-16">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-12"
-        >
-          {/* Eyebrow — plain text, no ALL CAPS tracking decoration */}
-          <p className="text-indigo-500 text-sm font-medium mb-3">Why AlgoSort</p>
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-900">
-            Built for learners who want to actually get it
-          </h2>
-        </motion.div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {FEATURES.map((f, i) => (
-            <FeatureCard key={f.title} {...f} delay={i * 0.1} />
-          ))}
-        </div>
-      </section>
-
-      {/* ── CTA Banner ── */}
-      <section className="relative z-10 max-w-4xl mx-auto px-6 md:px-12 py-16">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          // Indigo-tinted section — light, not dark
-          className="rounded-3xl border border-indigo-100 bg-indigo-50 p-10 md:p-14 text-center"
-        >
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
-            Ready to master sorting?
-          </h2>
-          <p className="text-slate-500 mb-8 max-w-xl mx-auto">
-            No setup. No install. Open your browser and start learning in seconds.
-          </p>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.96 }}
-            className="px-8 py-4 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white font-bold text-base shadow-md shadow-indigo-200 transition-all"
-          >
-            Start Visualizing — It's Free
-          </motion.button>
-        </motion.div>
-      </section>
-
-      {/* ── Footer ── */}
-      <footer className="relative z-10 border-t border-slate-100 bg-white px-6 md:px-12 py-8">
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="flex items-end gap-[2px] h-4">
+      {/* ═══════════════════════════════════════════════════════════════════════
+          FOOTER
+      ════════════════════════════════════════════════════════════════════════ */}
+      <footer className="bg-white border-t border-neutral-200">
+        <div className="w-full px-8 md:px-16 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-end gap-[3px] h-4">
               {[3, 5, 4, 7, 6, 4].map((h, i) => (
-                <div key={i} className="w-[2px] rounded-t-[1px] bg-indigo-400" style={{ height: `${h * 2.5}px` }} />
+                <div
+                  key={i}
+                  className="w-[2.5px] rounded-t-[1px] bg-neutral-900"
+                  style={{ height: `${h * 2.2}px` }}
+                />
               ))}
             </div>
-            <span className="text-sm font-semibold text-slate-700">
-              Algo<span className="text-indigo-500">Sort</span>
+            <span className="text-neutral-400 text-xs">
+              © {new Date().getFullYear()} <span className="text-neutral-900 font-semibold">AlgoSort</span>
             </span>
           </div>
-          <p className="text-xs text-slate-400">
-            @aryan.0529
-          </p>
-          <div className="flex gap-6 text-xs text-slate-400">
-            <a href="#" className="hover:text-slate-700 transition-colors">Privacy</a>
-            <a href="#" className="hover:text-slate-700 transition-colors">GitHub</a>
+
+          <div className="flex items-center gap-6 text-xs font-medium text-neutral-500">
+            <a href="/visualizer" className="hover:text-neutral-900 transition-colors duration-150">
+              Visualizer
+            </a>
+            <a
+              href="https://github.com/ARYAN0529"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-neutral-900 transition-colors duration-150"
+            >
+              GitHub
+            </a>
+            <a href="mailto:hello@algosort.dev" className="hover:text-neutral-900 transition-colors duration-150">
+              Contact
+            </a>
           </div>
         </div>
       </footer>

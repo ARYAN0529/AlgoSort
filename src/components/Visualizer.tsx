@@ -1,8 +1,8 @@
 // main page where all soring is going to perform
 
 
-import {useEffect , useState,useRef} from "react";
-import {motion} from "framer-motion";
+import { useEffect, useRef, useState, memo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 function visualizer (){
 
