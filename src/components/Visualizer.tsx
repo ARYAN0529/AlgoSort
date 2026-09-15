@@ -25,7 +25,6 @@ const ALGORITHMS = [
   "Quick Sort",
 ];
 
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
 
 // Build a fresh random array of { value, state } objects.
 // Called once on mount + every time arraySize changes or user randomizes.
@@ -60,13 +59,14 @@ async function bubbleSort(arr, push, cancelled, ms) {
         arr[j + 1].state = "swapping";
         push([...arr]);
         await sleep(ms);
+        //swapping values
         [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
       }
 
       arr[j].state = "default";
       arr[j + 1].state = "default";
     }
-    arr[n - 1 - i].state = "sorted"; // this bar is in its final spot
+    arr[n - 1 - i].state = "sorted"; // last wala sort ho jata hai
     push([...arr]);
   }
   arr[0].state = "sorted";
@@ -250,13 +250,14 @@ const VizBars = memo(function VizBars({ bars }) {
     >
       {bars.map((bar, i) => (
         <div
-          key={i}
+        key={i}
+        //draws the bars on the screen
           style={{
             // flex-1 would overflow; use calc so bars always sum to 100% width
             flex: "1 1 0",
             maxWidth: Math.max(2, Math.floor(860 / bars.length) - gap),
-            height: `${(bar.value / maxVal) * 100}%`,
-            backgroundColor: BAR_COLORS[bar.state] ?? BAR_COLORS.default,
+            height: `${(bar.value / maxVal) * 100}%`,       // height of bar relative to max value
+            backgroundColor: BAR_COLORS[bar.state] ?? BAR_COLORS.default, // color state ke hisab se
             borderRadius: "2px 2px 0 0",
             transition: "background-color 0.05s ease",
           }}
@@ -383,6 +384,15 @@ export default function Visualizer() {
     ? "Done ✓"
     : "Sort";
 
+
+
+
+
+
+
+
+
+
   return (
     <div className="min-h-screen font-sans" style={{ backgroundColor: PAGE_BG }}>
 
@@ -412,15 +422,15 @@ export default function Visualizer() {
       </nav>
 
       {/* ══════════════ MAIN CONTENT ══════════════ */}
-      <main className="max-w-[920px] mx-auto px-4 py-10">
+      <main className="max-w-[920px] mx-auto px-4 py-5">
 
         {/* Page title */}
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">Visualizer</h1>
           <p className="text-neutral-500 text-sm mt-1">
             Pick an algorithm, set the size and speed, then hit Sort.
           </p>
-        </div>
+        </div> */}
 
         {/* ══ Control Bar ══ */}
         <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm px-6 py-5 mb-4">
