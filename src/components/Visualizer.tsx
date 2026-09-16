@@ -2,11 +2,19 @@
 // Matches the welcome page's design tokens: #F7F7F5 bg, neutral-900 dark, clean white cards
 import { useState, useRef, useEffect, useCallback, memo } from "react";
 
+// ─── TYPES ────────────────────────────────────────────────────────────────────
+type BarState = "default" | "comparing" | "swapping" | "pivot" | "sorted";
+type Bar = { value: number; state: BarState };
+type PushFn = (arr: Bar[]) => void;
+type CancelRef = { current: boolean };
+type SpeedKey = "Slow" | "Medium" | "Fast";
+type AlgoKey = "Bubble Sort" | "Selection Sort" | "Insertion Sort" | "Merge Sort" | "Quick Sort";
+
 // ─── DESIGN TOKENS (mirror welcome page) ──────────────────────────────────────
 const PAGE_BG = "#F7F7F5";
 
 // Bar state → colour (blue/orange/red/green matches the legend)
-const BAR_COLORS = {
+const BAR_COLORS: Record<BarState, string> = {
   default:   "#D1D5DB", // gray-300  — unsorted
   comparing: "#3B82F6", // blue-500  — being compared
   swapping:  "#F97316", // orange-400 — being swapped
@@ -15,9 +23,9 @@ const BAR_COLORS = {
 };
 
 // Speed label → animation delay in ms per step
-const SPEED_MS = { Slow: 120, Medium: 50, Fast: 12 };
+const SPEED_MS: Record<SpeedKey, number> = { Slow: 120, Medium: 50, Fast: 12 };
 
-const ALGORITHMS = [
+const ALGORITHMS: AlgoKey[] = [
   "Bubble Sort",
   "Selection Sort",
   "Insertion Sort",
@@ -28,14 +36,14 @@ const ALGORITHMS = [
 
 // Build a fresh random array of { value, state } objects.
 // Called once on mount + every time arraySize changes or user randomizes.
-function makeArray(n) {
+function makeArray(n: number): Bar[] {
   return Array.from({ length: n }, () => ({
     value: Math.floor(8 + Math.random() * 90), // 8–97 so bars are never invisible
-    state: "default",
+    state: "default" as BarState,
   }));
 }
 
-const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+const sleep = (ms: number) => new Promise<void>((res) => setTimeout(res, ms));
 
 // ─── SORTING ALGORITHMS ───────────────────────────────────────────────────────
 // Convention:
@@ -43,7 +51,7 @@ const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 //   push      — (arr) => void — call to flush state to React
 //   cancelled — { current: bool } — set to true to abort mid-sort
 
-async function bubbleSort(arr, push, cancelled, ms) {
+async function bubbleSort(arr: Bar[], push: PushFn, cancelled: CancelRef, ms: number) {
   const n = arr.length;
   for (let i = 0; i < n - 1; i++) {
     for (let j = 0; j < n - i - 1; j++) {
@@ -59,7 +67,7 @@ async function bubbleSort(arr, push, cancelled, ms) {
         arr[j + 1].state = "swapping";
         push([...arr]);
         await sleep(ms);
-        //swapping values
+        // swapping values
         [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
       }
 
@@ -73,7 +81,7 @@ async function bubbleSort(arr, push, cancelled, ms) {
   push([...arr]);
 }
 
-async function selectionSort(arr, push, cancelled, ms) {
+async function selectionSort(arr: Bar[], push: PushFn, cancelled: CancelRef, ms: number) {
   const n = arr.length;
   for (let i = 0; i < n - 1; i++) {
     let minIdx = i;
@@ -111,7 +119,7 @@ async function selectionSort(arr, push, cancelled, ms) {
   push([...arr]);
 }
 
-async function insertionSort(arr, push, cancelled, ms) {
+async function insertionSort(arr: Bar[], push: PushFn, cancelled: CancelRef, ms: number) {
   arr[0].state = "sorted";
   push([...arr]);
 
@@ -140,10 +148,10 @@ async function insertionSort(arr, push, cancelled, ms) {
   }
 }
 
-async function mergeSort(arr, push, cancelled, ms) {
-  async function merge(l, m, r) {
-    const left  = arr.slice(l, m + 1).map((b) => b.value);
-    const right = arr.slice(m + 1, r + 1).map((b) => b.value);
+async function mergeSort(arr: Bar[], push: PushFn, cancelled: CancelRef, ms: number) {
+  async function merge(l: number, m: number, r: number) {
+    const left  = arr.slice(l, m + 1).map((b: Bar) => b.value);
+    const right = arr.slice(m + 1, r + 1).map((b: Bar) => b.value);
     let i = 0, j = 0, k = l;
 
     while (i < left.length && j < right.length) {
@@ -170,7 +178,7 @@ async function mergeSort(arr, push, cancelled, ms) {
     push([...arr]);
   }
 
-  async function sort(l, r) {
+  async function sort(l: number, r: number) {
     if (l >= r || cancelled.current) return;
     const m = Math.floor((l + r) / 2);
     await sort(l, m);
@@ -181,8 +189,8 @@ async function mergeSort(arr, push, cancelled, ms) {
   await sort(0, arr.length - 1);
 }
 
-async function quickSort(arr, push, cancelled, ms) {
-  async function partition(low, high) {
+async function quickSort(arr: Bar[], push: PushFn, cancelled: CancelRef, ms: number) {
+  async function partition(low: number, high: number): Promise<number> {
     const pivotVal = arr[high].value;
     arr[high].state = "pivot";
     let i = low - 1;
@@ -213,7 +221,7 @@ async function quickSort(arr, push, cancelled, ms) {
     return i + 1;
   }
 
-  async function sort(low, high) {
+  async function sort(low: number, high: number) {
     if (low >= high || cancelled.current) return;
     const pi = await partition(low, high);
     await sort(low, pi - 1);
@@ -223,12 +231,12 @@ async function quickSort(arr, push, cancelled, ms) {
   await sort(0, arr.length - 1);
 
   if (!cancelled.current) {
-    arr.forEach((b) => (b.state = "sorted"));
+    arr.forEach((b: Bar) => (b.state = "sorted"));
     push([...arr]);
   }
 }
 
-const ALGO_FNS = {
+const ALGO_FNS: Record<AlgoKey, (arr: Bar[], push: PushFn, cancelled: CancelRef, ms: number) => Promise<void>> = {
   "Bubble Sort":    bubbleSort,
   "Selection Sort": selectionSort,
   "Insertion Sort": insertionSort,
@@ -239,7 +247,7 @@ const ALGO_FNS = {
 // ─── VIZ BARS ─────────────────────────────────────────────────────────────────
 // Pure rendering component — no framer-motion so it stays fast at 100 bars.
 // Bar width is calculated from the container so bars always fill the canvas.
-const VizBars = memo(function VizBars({ bars }) {
+const VizBars = memo(function VizBars({ bars }: { bars: Bar[] }) {
   const maxVal = Math.max(...bars.map((b) => b.value), 1);
   const gap    = bars.length > 60 ? 1 : bars.length > 30 ? 2 : 3;
 
@@ -251,7 +259,7 @@ const VizBars = memo(function VizBars({ bars }) {
       {bars.map((bar, i) => (
         <div
         key={i}
-        //draws the bars on the screen
+        // draws the bars on the screen
           style={{
             // flex-1 would overflow; use calc so bars always sum to 100% width
             flex: "1 1 0",
@@ -286,9 +294,9 @@ function LogoBars() {
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function Visualizer() {
   // ── Controls ──
-  const [selectedAlgo, setSelectedAlgo] = useState("Merge Sort");
+  const [selectedAlgo, setSelectedAlgo] = useState<AlgoKey>("Merge Sort");
   const [arraySize,    setArraySize]    = useState(30);
-  const [speed,        setSpeed]        = useState("Medium");
+  const [speed,        setSpeed]        = useState<SpeedKey>("Medium");
   const [isDropOpen,   setIsDropOpen]   = useState(false);
 
   // ── Sort state ──
@@ -296,22 +304,17 @@ export default function Visualizer() {
   const [isDone,    setIsDone]    = useState(false);
 
   // ── Array — stable ref prevents random re-rolls on every render ──
-  const arrRef  = useRef(makeArray(30));
-  const [bars, setBarsState] = useState(arrRef.current);
-  // setBars updates both the live ref and React state
-  const setBars = useCallback((next) => {
-    arrRef.current = Array.isArray(next) ? next : next(arrRef.current);
-    setBarsState([...arrRef.current]);
-  }, []);
+  const arrRef  = useRef<Bar[]>(makeArray(30));
+  const [bars, setBarsState] = useState<Bar[]>(arrRef.current);
 
   // ── Cancel flag shared with async sort functions ──
-  const cancelledRef = useRef(false);
+  const cancelledRef = useRef<boolean>(false);
 
   // ── Close dropdown when clicking outside ──
-  const dropRef = useRef(null);
+  const dropRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    function onOutsideClick(e) {
-      if (dropRef.current && !dropRef.current.contains(e.target)) {
+    function onOutsideClick(e: MouseEvent) {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) {
         setIsDropOpen(false);
       }
     }
@@ -344,7 +347,7 @@ export default function Visualizer() {
     setIsSorting(true);
 
     // Reset all bar states before starting
-    const working = arrRef.current.map((b) => ({ ...b, state: "default" }));
+    const working = arrRef.current.map((b) => ({ ...b, state: "default" as BarState }));
     arrRef.current = working;
     setBarsState([...working]);
 
@@ -352,7 +355,7 @@ export default function Visualizer() {
     if (fn) {
       await fn(
         working,
-        (next) => {
+        (next: Bar[]) => {
           arrRef.current = next;
           setBarsState([...next]);
         },
@@ -370,7 +373,7 @@ export default function Visualizer() {
     setIsSorting(false);
   }, []);
 
-  const handleAlgoSelect = (algo) => {
+  const handleAlgoSelect = (algo: AlgoKey) => {
     if (isSorting) return;
     setSelectedAlgo(algo);
     setIsDropOpen(false);
@@ -383,15 +386,6 @@ export default function Visualizer() {
     : isDone
     ? "Done ✓"
     : "Sort";
-
-
-
-
-
-
-
-
-
 
   return (
     <div className="min-h-screen font-sans" style={{ backgroundColor: PAGE_BG }}>
@@ -423,14 +417,6 @@ export default function Visualizer() {
 
       {/* ══════════════ MAIN CONTENT ══════════════ */}
       <main className="max-w-[920px] mx-auto px-4 py-5">
-
-        {/* Page title */}
-        {/* <div className="mb-6">
-          <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">Visualizer</h1>
-          <p className="text-neutral-500 text-sm mt-1">
-            Pick an algorithm, set the size and speed, then hit Sort.
-          </p>
-        </div> */}
 
         {/* ══ Control Bar ══ */}
         <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm px-6 py-5 mb-4">
@@ -502,7 +488,7 @@ export default function Visualizer() {
               <select
                 value={speed}
                 disabled={isSorting}
-                onChange={(e) => setSpeed(e.target.value)}
+                onChange={(e) => setSpeed(e.target.value as SpeedKey)}
                 className="px-3 py-2 border border-neutral-300 rounded-lg bg-white text-sm text-neutral-800 font-medium
                            focus:outline-none focus:ring-2 focus:ring-neutral-400 transition
                            cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
@@ -588,7 +574,7 @@ export default function Visualizer() {
 // ─── ALGO INFO ────────────────────────────────────────────────────────────────
 // Shows time/space complexity + a one-liner for the selected algorithm.
 // No external data — purely static, but useful context while watching the sort.
-const ALGO_META = {
+const ALGO_META: Record<AlgoKey, { best: string; average: string; worst: string; space: string; note: string; stable: boolean }> = {
   "Bubble Sort": {
     best: "O(n)", average: "O(n²)", worst: "O(n²)", space: "O(1)",
     note: "Repeatedly swaps adjacent elements. Simple but slow — good for understanding the basics.",
@@ -616,7 +602,7 @@ const ALGO_META = {
   },
 };
 
-function AlgoInfo({ algo }) {
+function AlgoInfo({ algo }: { algo: AlgoKey }) {
   const meta = ALGO_META[algo];
   if (!meta) return null;
 

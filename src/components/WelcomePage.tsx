@@ -216,10 +216,10 @@ export default function WelcomePage() {
           <a href="/visualizer" className="hover:text-neutral-900 transition-colors duration-150">
             Visualizer
           </a>
-          <a href="#features" className="hover:text-neutral-900 transition-colors duration-150">
+          <a href="/features" className="hover:text-neutral-900 transition-colors duration-150">
             Features
           </a>
-          <a href="#about" className="hover:text-neutral-900 transition-colors duration-150">
+          <a href="/about" className="hover:text-neutral-900 transition-colors duration-150">
             About
           </a>
         </div>
@@ -293,7 +293,7 @@ export default function WelcomePage() {
           </motion.a>
 
           <motion.a
-            href="https://github.com/ARYAN0529"
+            href="https://github.com/ARYAN0529/AlgoSort"
             target="_blank"
             rel="noopener noreferrer"
             whileHover={{ scale: 1.03 }}
@@ -354,18 +354,7 @@ export default function WelcomePage() {
       {/* ═══════════════════════════════════════════════════════════════════════
           STATS — white band
       ════════════════════════════════════════════════════════════════════════ */}
-      <section className="border-y border-neutral-200 bg-white">
-        <div className="max-w-xl mx-auto px-6">
-          <div className="grid grid-cols-3 divide-x divide-neutral-100">
-            {STATS.map(({ value, label }, i) => (
-              <div key={i} className="flex flex-col items-center py-10 px-4">
-                <span className="text-3xl font-bold text-neutral-900 mb-1 tracking-tight">{value}</span>
-                <span className="text-[11px] text-neutral-400 tracking-widest uppercase font-mono">{label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+     
 
       {/* ═══════════════════════════════════════════════════════════════════════
           FOOTER
@@ -392,7 +381,7 @@ export default function WelcomePage() {
               Visualizer
             </a>
             <a
-              href="https://github.com/ARYAN0529"
+              href="https://github.com/ARYAN0529/AlgoSort"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-neutral-900 transition-colors duration-150"
