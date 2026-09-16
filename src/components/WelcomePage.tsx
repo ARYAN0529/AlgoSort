@@ -30,12 +30,6 @@ const HEADLINE_WORDS = [
   "Insertion Sort",
 ];
 
-const STATS = [
-  { value: "5", label: "Algorithms" },
-  { value: "60fps", label: "Animations" },
-  { value: "∞", label: "Array Sizes" },
-];
-
 const BG = "#F7F7F5"; // Notion's warm off-white — single source of truth for page bg
 const ACCENT = "#0F6E5C"; // deep teal — used sparingly for the one animated headline word
 
@@ -209,19 +203,6 @@ export default function WelcomePage() {
           <span className="font-bold text-xl tracking-tight text-neutral-900">
             Algo<span className="text-neutral-400">Sort</span>
           </span>
-        </div>
-
-        {/* Nav links */}
-        <div className="hidden md:flex items-center gap-10 text-[15px] font-medium text-neutral-500">
-          <a href="/visualizer" className="hover:text-neutral-900 transition-colors duration-150">
-            Visualizer
-          </a>
-          <a href="/features" className="hover:text-neutral-900 transition-colors duration-150">
-            Features
-          </a>
-          <a href="/about" className="hover:text-neutral-900 transition-colors duration-150">
-            About
-          </a>
         </div>
 
         {/* CTA button */}
